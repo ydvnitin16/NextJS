@@ -251,3 +251,249 @@ export async function GET() {
 | Delete      | `delete`, `deleteMany`         | `await prisma.user.delete({ where })`           |
 | Relations   | `include`, `connect`, `create` | `include: { posts: true }`                      |
 | Aggregation | `aggregate`                    | `await prisma.user.aggregate({ _count: true })` |
+
+
+
+# 📘 Prisma Model Design Guide (for MongoDB)
+## 🚀 Overview
+
+This guide explains how to design Prisma models — the core of your database — using MongoDB.
+You’ll learn how to define models, relationships, data types, defaults, and best practices.
+
+### 🧱 What Is a Model?
+
+A model in Prisma represents a collection (table) in MongoDB.
+Each field inside it represents a property (column).
+
+```bash 
+model User {
+  id       String   @id @default(auto()) @map("_id") @db.ObjectId
+  name     String
+  email    String   @unique
+  password String
+  createdAt DateTime @default(now())
+}
+
+```
+* MongoDB Note:
+MongoDB uses _id as its primary key → we map it with @map("_id").
+
+### ⚙️ Basic Field Syntax
+Component	Description
+
+| Component     | Description                      |
+| ------------- | -------------------------------- |
+| `id`          | Field name                       |
+| `String`      | Data type                        |
+| `@id`         | Marks primary key                |
+| `@default()`  | Sets default value               |
+| `@map("_id")` | Maps field name to MongoDB `_id` |
+| `@unique`     | Ensures unique value             |
+
+
+### 📚 Common Prisma Types
+
+| Prisma Type | MongoDB Equivalent | Example                              |
+| ----------- | ------------------ | ------------------------------------ |
+| `String`    | String             | `name String`                        |
+| `Int`       | Number             | `age Int`                            |
+| `Boolean`   | Boolean            | `isAdmin Boolean @default(false)`    |
+| `DateTime`  | Date               | `createdAt DateTime @default(now())` |
+| `Float`     | Number (decimal)   | `rating Float`                       |
+| `Json`      | JSON object        | `metadata Json`                      |
+| `String[]`  | Array of strings   | `tags String[]`                      |
+### 🕒 Default Values
+
+You can auto-generate timestamps and IDs.
+```
+model User {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  email     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+```
+* 🟢 @default(now()) → sets creation time
+* 🟢 @updatedAt → automatically updates when record changes
+
+
+## 🔗 Relations (1-1, 1-M, M-M)
+
+MongoDB doesn’t use foreign keys, but Prisma simulates them through references.
+
+### ✅ One-to-One Example
+```
+model User {
+  id       String   @id @default(auto()) @map("_id") @db.ObjectId
+  profile  Profile?
+}
+```
+```
+model Profile {
+  id       String   @id @default(auto()) @map("_id") @db.ObjectId
+  bio      String?
+  user     User?    @relation(fields: [userId], references: [id])
+  userId   String?  @db.ObjectId
+}
+```
+
+* ach user has one profile
+
+* ch profile belongs to one user
+
+### ✅ One-to-Many Example (User → Posts)
+```
+model User {
+  id     String  @id @default(auto()) @map("_id") @db.ObjectId
+  name   String
+  posts  Post[]
+}
+```
+```
+model Post {
+  id       String   @id @default(auto()) @map("_id") @db.ObjectId
+  title    String
+  content  String?
+  user     User?    @relation(fields: [userId], references: [id])
+  userId   String?  @db.ObjectId
+}
+```
+
+* One user can have many posts
+
+* Each post belongs to one user
+
+### ✅ Many-to-Many Example (Users ↔ Projects)
+```
+model User {
+  id        String     @id @default(auto()) @map("_id") @db.ObjectId
+  name      String
+  projects  Project[]  @relation("UserProjects")
+}
+```
+```
+model Project {
+  id        String     @id @default(auto()) @map("_id") @db.ObjectId
+  title     String
+  members   User[]     @relation("UserProjects")
+}
+```
+
+
+* Prisma creates a hidden relation collection automatically
+
+### 🧩 Enums (for status, role, etc.)
+
+Enums define fixed sets of string values.
+```
+enum Role {
+  USER
+  ADMIN
+}
+```
+
+```
+model User {
+  id    String  @id @default(auto()) @map("_id") @db.ObjectId
+  name  String
+  role  Role    @default(USER)
+}
+```
+
+## 🧰 Example: Real App Models
+### 🧍 User
+```
+model User {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  name      String
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now())
+  posts     Post[]
+}
+```
+### 📝 Post
+```
+model Post {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  title     String
+  content   String?
+  published Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id])
+  userId    String?  @db.ObjectId
+}
+```
+### 💬 Comment
+```
+model Comment {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  text      String
+  post      Post?    @relation(fields: [postId], references: [id])
+  postId    String?  @db.ObjectId
+  createdAt DateTime @default(now())
+}
+```
+
+## 🪄 Advanced Patterns
+### ✅ Soft Delete
+
+Instead of deleting records, mark them inactive:
+```
+model User {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  name      String
+  deletedAt DateTime?
+}
+```
+
+### ✅ Embedding Subdocuments (MongoDB-only)
+
+MongoDB allows nested documents:
+
+```
+model Product {
+  id       String   @id @default(auto()) @map("_id") @db.ObjectId
+  name     String
+  price    Float
+  specs    Json     // { weight: "1kg", color: "black" }
+}
+```
+
+## 🧪 Practical Tips
+
+* ✅ Always use:
+id String @id @default(auto()) @map("_id") @db.ObjectId
+for MongoDB.
+
+* ✅ Use @relation(fields: [...], references: [...]) for relationships.
+
+* ✅ Use @updatedAt to auto-update timestamps.
+
+* ✅ Use enums for roles/statuses.
+
+* ✅ Use ? for optional fields.
+
+* ✅ Use arrays [] for lists.
+
+## 💡 CheatSheet Summary
+
+| Feature       | Example                                         |
+| ------------- | ----------------------------------------------- |
+| String field  | `name String`                                   |
+| Default value | `@default("Guest")`                             |
+| Unique        | `email String @unique`                          |
+| Optional      | `bio String?`                                   |
+| Array         | `tags String[]`                                 |
+| Date created  | `createdAt DateTime @default(now())`            |
+| Updated auto  | `updatedAt DateTime @updatedAt`                 |
+| Relation      | `@relation(fields: [userId], references: [id])` |
+| Enum          | `role Role @default(USER)`                      |
+
+## 🧠 Once You Design Models
+
+After editing your schema:
+```
+npx prisma generate
+npx prisma db push
+```
