@@ -28,9 +28,9 @@ export default function RootLayout({
                 className={`${geistSans.variable} ${geistMono.variable} antialiased`}
             >
                 {children}
-                <div>{notification}</div>
+                {/* <div>{notification}</div>
                 <div>{profile}</div>
-                <div>{revenue}</div>
+                <div>{revenue}</div> */}
             </body>
         </html>
     );
