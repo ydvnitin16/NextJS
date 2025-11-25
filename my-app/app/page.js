@@ -1,7 +1,12 @@
 import Image from 'next/image';
 import React from 'react';
 
+export const metadata = {
+    title: 'Home',
+    description: 'This is the home page'
+}
 const Home = () => {
+
     const images = [];
 
     return (
@@ -9,12 +14,12 @@ const Home = () => {
             {images?.map((img, idx) => (
                 <div className="relative w-full h-[400px]">
                     <Image
-                    placeholder='empty'
+                        placeholder="empty"
                         key={idx}
                         className="object-cover"
                         src={img}
                         alt="Next.js logo"
-                        fill //use this for the responsive images
+                        fill //use this for the responsive images // and this is important to wrap the image component in a div tag
                         // height={200}
                         // width={100}
                         // sizes="100vh"
